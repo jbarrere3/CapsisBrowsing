@@ -1,0 +1,89 @@
+---
+title: "Better have slow than tasty neighbors: sapling recruitment is driven by intrerspecific differences in growth rate rather than in palatability to deer"
+output: pdf_document
+geometry: margin=1in
+fontsize: 11pt
+colorlinks: true
+bibliography: library.bib
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Last compilation : \today
+
+
+\vspace{20pt}
+
+Julien Barrere$^{ab}$, Gauthier Ligot$^{c}$, Vincent Boulanger$^{d}$, Catherine Collet$^{a}$, Benoit Courbaud$^{e}$, François de Coligny$^{f}$, Anders Marell$^{g}$, Sonia Saïd$^{b}$, Philippe Balandier$^{h}$
+
+\vspace{20pt}
+
+
+\begin{small}
+
+$^{a}$Université de Lorraine, Agroparistech, INRAE, UMR SILVA, 54000 Nancy, France
+
+$^{b}$Office Français de la Biodiversité, Direction de la Recherche et de l'Appui Scientifique, « Monfort », 01330 Birieux, France
+
+$^{c}$Gembloux Agro-Bio Tech, Université de Liège, Gembloux, Belgium 
+
+$^{d}$Office National des Forêts, Département Recherche et Développement, Boulevard de Constance, 77300 Fontainebleau, France
+
+$^{e}$Université Grenoble Alpes, INRAE, UR LESSEM, Saint-Martin-d'Hères, France
+
+$^{f}$AMAP, Univ Montpellier, CIRAD, CNRS, INRAE, IRD, Montpellier, France
+
+$^{g}$INRAE, UR EFNO, Nogent-surVernisson, France
+
+$^{h}$INRAE, Université de Clermont-Auvergne, UMR547 PIAF, 63000 Clermont-Ferrand, France
+
+\end{small}
+
+\newpage
+
+# Abstract
+
+
+\newpage
+
+# Introduction
+
+Forest regeneration driven by competition. To regenerate species in unfavorable conditions regarding competition, necessary to conduct clearing operations. 
+
+In recent years, ungulate browsing has emerged as an additional constraint for forest regeneration. Specificity: affect species differently. Attractant-decoy hypothesis : species are more likely to escape browsing in the presence of more palatable neighbors (@Hjalten1993). This raises question regarding the management of the understorey. Studies showed that in certain cases, less frequent clearing operations could be beneficial when a high browsing pressure is applied. This should depend both on the differences in attractiveness, and on differences in competitive ability. 
+
+Case of oak particularly interesting. Difficulty to regenerate this species. Co-occur with beech and hornbeam, two species that are more competitive but differ in their relative palatability. While beech is considered less palatable, hornbeam is more frequently browsed than oak. We studied : 
+
+H1: What is the main driver of oak regeneration between competition and browsing ? 
+
+H2: How to manage oak regeneration under different level of competition and browsing ? 
+
+To do this, we used a modeling approach. We analyzed browsing patterns, and growth rates of the three species, and modeled different scenarios of browsing and competition. 
+
+\newpage
+
+# Material and methods
+
+![(a) browsing probability and (b) annual height growth implemented in the model for each studied species, as a function of the initial height and of the percentage of above canopy light available (PACL).](fig/fig_palatability_growth.jpg)
+
+
+\newpage
+
+# Results
+
+## H1 : On the balance between competition and browsing for oak recruitment
+
+![Recruitment of oak saplings for different species composition, initial density, and browsing pressure](fig/H1/fig_recruitment15_density_browsing.png)
+
+
+## H2 : Management of oak regeneration under different levels of browsing and competition
+
+![Recruitment of oak saplings for different species composition, initial density, browsing pressure and clearing scenarios](fig/H2/fig_recruitment10_clearing_browsing.png)
+
+
+\newpage
+
+# References
