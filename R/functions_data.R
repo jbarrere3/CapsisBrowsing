@@ -225,7 +225,7 @@ get_vegelayer_distribution <- function(vegelayer_file){
 
 
 
-#' Predict the height-diameter distribution of a seedlings from a contingency table
+#' Predict the height-diameter distribution of a seedling from a contingency table
 #' @param n Number of seedlings to predict
 #' @param matr Matrix containing height diameter joint distribution
 #' @param xname name of the first column of the output
@@ -238,7 +238,7 @@ predict_seedling <- function(n, matr, xname, yname){
     while(test == FALSE){
       xrand = runif(1, min = 1, max = dim(matr)[1])
       yrand = runif(1, min = 1, max = dim(matr)[2])
-      test = rbernoulli(1, matr[xrand, yrand])
+      test = rbinom(1, 1, matr[xrand, yrand])
     }
     Var1 <- c(Var1, as.numeric(rownames(matr)[xrand]))
     Var2 <- c(Var2, as.numeric(colnames(matr)[yrand]))
@@ -261,7 +261,7 @@ predict_bramble <- function(n, matrix.in){
     while(test == FALSE){
       xrand = runif(1, min = 1, max = dim(matrix.in)[1])
       yrand = runif(1, min = 1, max = dim(matrix.in)[2])
-      test = rbernoulli(1, matrix.in[xrand, yrand])
+      test = rbinom(1, 1, matrix.in[xrand, yrand])
     }
     Var1 <- c(Var1, as.numeric(rownames(matrix.in)[xrand]))
     Var2 <- c(Var2, as.numeric(colnames(matrix.in)[yrand]))
@@ -969,6 +969,17 @@ run_simulations <- function(capsis_dir, cmd_file){
 }
 
 
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# --- Section 3 - Format the simulations outputs ----
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
 #' Extract and format the simulations output
 #' @param capsis_dir Directory where the files are stored
 #' @param herbivory_table Table containing the herbivory scenarios
@@ -1077,3 +1088,111 @@ format_simulation_outputs2 <- function(capsis_dir, herbivory_table, inventory_ta
   
   return(simulation.table)
 }
+
+
+
+#' Extract and format the simulations output with recuitemnt data for each surveyed year
+#' @param capsis_dir Directory where the files are stored
+#' @param herbivory_table Table containing the herbivory scenarios
+#' @param inventory_table Table containing the inventory scenarios
+#' @param cmd_file Path to the command file to the script used to launch the simulations
+#' @param simulations_output Path to the files containing the simulation outputs
+format_simulation_outputs3 <- function(capsis_dir, herbivory_table, inventory_table, 
+                                       cmd_file, simulations_output){
+  
+  # Extract the herbivore and inventory scenarios per simulation
+  simulation.table <- read.table(cmd_file, col.names = c("invFile", "years", "herbFile"))
+  simulation.table <- simulation.table[c(3:dim(simulation.table)[1]), ] %>%
+    mutate(sim.number = c(1:dim(.)[1])) %>%
+    left_join((herbivory_table %>% rename(herbFile = filename)), by = "herbFile") %>%
+    left_join((inventory_table %>% rename(invFile = filename)), by = "invFile") %>%
+    mutate(browsing.density_m2 = NA_real_)
+  # Add one column per sampling year
+  for(y in c(1:20)){simulation.table$Yi <- 0; colnames(simulation.table)[dim(simulation.table)[2]] <- paste0("Y", y)}
+  
+  # Calculate output variables
+  for(i in unique(simulation.table$sim.number)){
+    if(floor(i/20) == i/20) print(paste0("Extracting results for simulation ", i, "/", dim(simulation.table)[1]))
+    
+    # Read the saplings output
+    saplingExport_i <- read.table(
+      simulations_output[grep(paste0("sim_", i, "_saplingExport"), simulations_output)], 
+      col.names = c("year", "cell", "id", "species", "age", "diameter_mm", "height_cm", "browsed", "cleared"))
+    # Calculate initial number of oak in the simulation
+    n.oak.init <- dim(saplingExport_i %>% filter(year == 0 & species == "QUERCUS_ROBUR"))[1]
+    # Calculate percentage of oak above 130cm in height per year
+    oak130_i <- saplingExport_i %>%
+      filter(species == "QUERCUS_ROBUR" & year > 0) %>%
+      mutate(year = paste0("Y", year), 
+             recruited = ifelse(height_cm >= 130, 1, 0)) %>%
+      group_by(year) %>%
+      summarize(n = sum(recruited)) %>%
+      tidyr::spread(key = year, value = n) 
+    simulation.table[i, colnames(oak130_i)] <- oak130_i
+    # Calculate density of sapling browsed
+    browsing_i <- saplingExport_i %>%
+      group_by(year) %>%
+      summarize(browsed.density = sum(browsed)/(27^2)) %>%
+      ungroup() %>%
+      filter(year > 0) %>%
+      summarize(browsed.density.mean = mean(browsed.density))
+    simulation.table$browsing.density_m2[i] <- browsing_i$browsed.density.mean
+    
+  }
+  
+  return(simulation.table)
+}
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# --- Section 4 - Outdated functions    ----
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+#' Format data for the jags model for hypothesis 1
+#' @param simulation_output_formatted_H1.3 Outputs of H1 simulations, with one recruitment per year
+#' @param density.in Seedling density selected to run the model
+format_data.jags_H1 <- function(simulation_output_formatted_H1.3, density.in){
+  
+  data.in <- simulation_output_formatted_H1.3 %>%
+    # Format species composition variable
+    mutate(sp.composition = case_when(
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
+      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam", 
+      TRUE ~ "100% Oak")) %>%
+    # Only keep density of interest
+    filter(saplingDensity.in == density.in)  %>%
+    # Rename browsing and recruitment
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year) %>%
+    dplyr::select("sp.composition", "browsing", paste0("Y", c(1:20))) %>%
+    # gather each year
+    tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
+    # Adapt recruitment depending on species composition (and convert from ha to m2)
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/20000, recruitment/10000)) %>%
+    # Format year
+    mutate(year = as.numeric(gsub("Y", "", year))) %>%
+    # Convert species composition in a number
+    left_join((data.frame(sp.composition = unique(.$sp.composition), 
+                          sp = c(1:length(unique(.$sp.composition))))), 
+              by = "sp.composition")
+  
+  # Convert into a list
+  out <- list(
+    sp = data.in$sp, 
+    t = data.in$year, 
+    br = data.in$browsing, 
+    R = data.in$recruitment, 
+    spcomp = data.in$sp.composition, 
+    N = dim(data.in)[1], 
+    Nsp = length(unique(data.in$sp))
+  )
+  
+  # Return output list
+  return(out)
+}
+

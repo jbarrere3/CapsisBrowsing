@@ -34,253 +34,51 @@ create_dir_if_needed <- function(file.in){
 }
 
 
+#' Function to get the number of clearing operations performed based on the frequancy
+#' @param cl.freq numeric vector with the frequencies to extract
+#' @param min.year simulation year from which to start performing clearing operations
+#' @param max.year Last simulation year
+get_number_from_frequency <- function(cl.freq, min.year = 5, max.year = 20){
+  
+  # Initialize output
+  out <- c()
+  
+  # Loop on all frequencies
+  for(i in 1:length(cl.freq)){
+    # Number of clearing operations
+    out.i <- 1
+    
+    # Counter of year
+    k = min.year
+    
+    # If frequency is 0, number of operations is 0 as well
+    if(cl.freq[i] == 0) out.i <- 0
+    # Otherwise, while loop to count the operations
+    else{
+      while((k + cl.freq[i]) <= max.year){
+        out.i <- out.i + 1
+        k = k + cl.freq[i]
+      }
+    }
+    
+    # Add to the output
+    out <- c(out, out.i)
+  }
+  
+  # Return output
+  return(out)
+}
+
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-## 2. exploratory plots full data ------
+## 2. Plots for manuscript ------
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
 
-#' Plot recruitment with density and browsing
-#' @param simulation_output_formatted output of the simulations formatted
-#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
-#' @param file.in Name and location of the file to save
-plot_recruitment_density_browsing <- function(simulation_output_formatted, year.in, file.in){
-  
-  
-  ## - Create directories if needed
-  create_dir_if_needed(file.in)
-  
-  ## - make the plot
-  plot.out <- simulation_output_formatted %>%
-    mutate(sp.composition = case_when(
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
-      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam")) %>%
-    rename(Browsing = saplingBrowsedBiomass_kg_ha_year) %>%
-    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
-    ggplot(aes(x = saplingDensity.in, y = recruitment/10000, group = Browsing, color = Browsing)) + 
-    geom_line() + 
-    facet_wrap(~ sp.composition) + 
-    theme(panel.background = element_rect(fill = "white", color = "black"), 
-          strip.background = element_blank(), 
-          panel.grid = element_blank()) + 
-    xlab("Initial sapling density (m-2)") + 
-    ylab(paste0("Oak recruitment after ", year.in, " years (m-2)"))
-  
-  
-  ## - save the plot
-  ggsave(file.in, plot.out, width = 23, height = 8, units = "cm", dpi = 600)
-  return(file.in)
-  
-}
 
-#' Plot recruitment with density and browsing
-#' @param simulation_output_formatted output of the simulations formatted
-#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
-#' @param file.in Name and location of the file to save
-plot_recruitment_density_browsing2 <- function(simulation_output_formatted, year.in, file.in){
-  
-  
-  ## - Create directories if needed
-  create_dir_if_needed(file.in)
-  
-  ## - make the plot
-  plot.out <- simulation_output_formatted %>%
-    mutate(sp.composition = case_when(
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
-      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam")) %>%
-    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
-    mutate(recruitment_percent = (recruitment/10000)/(0.5*saplingDensity.in)*100) %>%
-    ggplot(aes(x = saplingDensity.in, y = recruitment_percent, color = browsing.density_m2)) + 
-    geom_point(size = 1) + 
-    facet_wrap(~ sp.composition) + 
-    theme(panel.background = element_rect(fill = "white", color = "black"), 
-          strip.background = element_blank(), 
-          panel.grid = element_blank()) + 
-    xlab("Initial sapling density (m-2)") + 
-    ylab(paste0("Percentage of oak recruited after ", year.in, " years"))
-  
-  
-  ## - save the plot
-  ggsave(file.in, plot.out, width = 23, height = 8, units = "cm", dpi = 600)
-  return(file.in)
-  
-}
-
-
-#' Plot recruitment with density and browsing
-#' @param simulation_output_formatted output of the simulations formatted
-#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
-#' @param file.in Name and location of the file to save
-plot_recruitment_density_browsing3 <- function(simulation_output_formatted, year.in, file.in){
-  
-  
-  ## - Create directories if needed
-  create_dir_if_needed(file.in)
-  
-  ## - make the plot
-  plot.out <- simulation_output_formatted %>%
-    mutate(sp.composition = case_when(
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
-      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam")) %>%
-    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
-    mutate(recruitment_percent = (recruitment/10000)/(0.5*saplingDensity.in)*100, 
-           browsing.density_m2 = round(browsing.density_m2, digits = 0)) %>%
-    filter(browsing.density_m2 %in% c(0, 2, 5)) %>%
-    mutate(browsing = paste0(browsing.density_m2, " saplings browsed / m2")) %>%
-    ggplot(aes(x = saplingDensity.in, y = recruitment_percent, color = sp.composition)) + 
-    geom_point(size = 1) + 
-    facet_wrap(~ browsing) + 
-    theme(panel.background = element_rect(fill = "white", color = "black"), 
-          strip.background = element_blank(), 
-          panel.grid = element_blank()) + 
-    xlab("Initial sapling density (m-2)") + 
-    ylab(paste0("Percentage of oak recruited after ", year.in, " years"))
-  
-  
-  ## - save the plot
-  ggsave(file.in, plot.out, width = 23, height = 8, units = "cm", dpi = 600)
-  return(file.in)
-  
-}
-
-
-
-#' Plot recruitment with density and browsing
-#' @param simulation_output_formatted output of the simulations formatted
-#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
-#' @param file.in Name and location of the file to save
-plot_recruitment_clearing_browsing <- function(simulation_output_formatted, year.in, file.in){
-  
-  
-  ## - Create directories if needed
-  create_dir_if_needed(file.in)
-  
-  ## - make the plot
-  plot.out <- simulation_output_formatted %>%
-    mutate(sp.composition = case_when(
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
-      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
-      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam"), 
-      density = paste0(saplingDensity.in, " saplings / m2"), 
-      clearing.frequency = as.numeric(gsub("freq\\_", "", clearing_scenario)), 
-      clearings = case_when(clearing.frequency == 0 ~ paste0("0 clearings"), 
-                            clearing.frequency > 0 ~ paste0(
-                              floor(15/clearing.frequency), " clearings (every ",
-                              clearing.frequency, " years)"))) %>%
-    rename(Browsing = saplingBrowsedBiomass_kg_ha_year) %>%
-    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
-    ggplot(aes(x = browsing.density_m2, y = recruitment/10000, group = clearings, color = clearings)) + 
-    geom_line() + 
-    facet_grid(density ~ sp.composition) + 
-    theme(panel.background = element_rect(fill = "white", color = "black"), 
-          strip.background = element_blank(), 
-          panel.grid = element_blank(), 
-          legend.key = element_blank(), 
-          legend.title = element_blank()) + 
-    xlab("Density of saplings browsed (m-2)") + 
-    ylab(paste0("Oak recruitment after ", year.in, " years (m-2)"))
-  
-  
-  ## - save the plot
-  ggsave(file.in, plot.out, width = 20, height = 9, units = "cm", dpi = 600)
-  return(file.in)
-  
-}
-
-
-#' Plot recruitment with density, browsing and clearing scenario
-#' @param simulation_output_formatted output of the simulations formatted
-#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
-#' @param file.in Name and location of the file to save
-plot_recruitment_clearing_browsing2 <- function(simulation_output_formatted, year.in, file.in){
-  
-  
-  ## - Create directories if needed
-  create_dir_if_needed(file.in)
-  
-  ## - make the plot
-  plot.out <- simulation_output_formatted %>%
-    mutate(density = paste0(saplingDensity.in, " saplings / m2"), 
-           clearing.frequency = gsub("\\..+", "", clearing_scenario), 
-           clearing.frequency = as.numeric(gsub("freq", "", clearing.frequency)), 
-           clearings = case_when(clearing.frequency == 0 ~ paste0("0 clearings"), 
-                                 clearing.frequency > 0 ~ paste0(
-                                   floor(15/clearing.frequency), " clearings (every ",
-                                   clearing.frequency, " years)")), 
-           clearing_target = gsub(".+\\.", "", clearing_scenario), 
-           clearing_target = gsub("\\-", " & ", clearing_target), 
-           clearing_target = gsub("\\_", " ", clearing_target)) %>%
-    rename(browsing = browsing.density_m2) %>%
-    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
-    dplyr::select(recruitment, browsing, density, clearings, clearing_target) %>%
-    ggplot(aes(x = browsing, y = recruitment/10000, group = clearings, color = clearings)) + 
-    geom_line() + 
-    facet_grid(density ~ clearing_target) + 
-    theme(panel.background = element_rect(fill = "white", color = "black"), 
-          strip.background = element_blank(), 
-          panel.grid = element_blank(), 
-          legend.key = element_blank(), 
-          legend.title = element_blank()) + 
-    xlab("Density of saplings browsed (m-2)") + 
-    ylab(paste0("Oak recruitment after ", year.in, " years (m-2)"))
-  
-  
-  ## - save the plot
-  ggsave(file.in, plot.out, width = 30, height = 13.5, units = "cm", dpi = 600)
-  return(file.in)
-  
-}
-
-
-#' Plot percentage of saplings recruited with density, browsing and clearing scenario
-#' @param simulation_output_formatted output of the simulations formatted
-#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
-#' @param file.in Name and location of the file to save
-plot_recruitment_clearing_browsing3 <- function(simulation_output_formatted, year.in, file.in){
-  
-  
-  ## - Create directories if needed
-  create_dir_if_needed(file.in)
-  
-  ## - make the plot
-  plot.out <- simulation_output_formatted %>%
-    mutate(density = paste0(saplingDensity.in, " saplings / m2"), 
-           clearing.frequency = gsub("\\..+", "", clearing_scenario), 
-           clearing.frequency = as.numeric(gsub("freq", "", clearing.frequency)), 
-           clearings = case_when(clearing.frequency == 0 ~ paste0("0 clearings"), 
-                                 clearing.frequency > 0 ~ paste0(
-                                   floor(15/clearing.frequency), " clearings (every ",
-                                   clearing.frequency, " years)")), 
-           clearing_target = gsub(".+\\.", "", clearing_scenario), 
-           clearing_target = gsub("\\-", " & ", clearing_target), 
-           clearing_target = gsub("\\_", " ", clearing_target)) %>%
-    rename(browsing = browsing.density_m2) %>%
-    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
-    mutate(init.oak.prop = as.numeric(gsub("\\-.+", "", gsub("QUERCUS\\_ROBUR\\*", "", sapling.in))), 
-           percent.sapling.recruited = ((recruitment/10000)/(saplingDensity.in*init.oak.prop))*100) %>%
-    dplyr::select(percent.sapling.recruited, browsing, density, clearings, clearing_target) %>%
-    ggplot(aes(x = browsing, y = percent.sapling.recruited, group = clearings, color = clearings)) + 
-    geom_line() + 
-    facet_grid(density ~ clearing_target) + 
-    theme(panel.background = element_rect(fill = "white", color = "black"), 
-          strip.background = element_blank(), 
-          panel.grid = element_blank(), 
-          legend.key = element_blank(), 
-          legend.title = element_blank()) + 
-    xlab("Density of saplings browsed (m-2)") + 
-    ylab(paste0("Percentage of oak recruited after ", year.in, " years (%)"))
-  
-  
-  ## - save the plot
-  ggsave(file.in, plot.out, width = 30, height = 13.5, units = "cm", dpi = 600)
-  return(file.in)
-  
-}
 
 #' Plot differences in growth and palatability between the three studied species
 #' @param file.in Character: name and location of the file to save
@@ -338,4 +136,608 @@ plot_palatability_growth <- function(file.in){
   ggsave(file.in, plot.out, width = 22, height = 8, units = "cm", dpi = 600)
   return(file.in)
 }
+
+
+#' Plot the effect of browsing on max recruitment and recruitment speed
+#' @param simulation_output_formatted output of the simulations formatted
+#' @param density0.in Numeric indicating the initial density of seedlings per m2
+#' @param file.in Name and location of the file to save
+plot_H1 <- function(simulation_output_formatted, density0.in = 30, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  ## - Format the data
+  data <- simulation_output_formatted %>%
+    # Format species composition variable
+    mutate(sp.composition = case_when(
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
+      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam", 
+      TRUE ~ "100% Oak")) %>%
+    # Rename browsing and recruitment
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year, density0 = saplingDensity.in) %>%
+    dplyr::select("sp.composition", "browsing", "density0", paste0("Y", c(1:20))) %>%
+    # gather each year
+    tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
+    # Adapt recruitment depending on species composition (and convert from ha to m2)
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/20000, recruitment/10000)) %>%
+    # Format year
+    mutate(year = as.numeric(gsub("Y", "", year))) %>%
+    # Calculate max recruitment
+    group_by(browsing, sp.composition, density0) %>%
+    mutate(Rmax = max(recruitment)) %>%
+    # Determine if recruitment is before or after rmax/2
+    mutate(positionRmax2 = ifelse(recruitment <= Rmax/2, "before", "after")) %>%
+    group_by(browsing, sp.composition, density0, positionRmax2) %>%
+    mutate(year.type = case_when(positionRmax2 == "before" & recruitment == max(recruitment) ~ "Ra", 
+                                 positionRmax2 == "after" & recruitment == min(recruitment) ~ "Rb", 
+                                 TRUE ~ "Rc")) %>%
+    filter(year.type %in% c("Ra", "Rb")) %>%
+    ungroup() %>%
+    group_by(browsing, sp.composition, density0) %>%
+    mutate(year.a = min(year)) %>%
+    ungroup() %>%
+    dplyr::select("sp.composition", "browsing", "density0", "Rmax", "year.a", "year.type", "recruitment") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c("sp.composition", "browsing", "density0", "Rmax", "year.a"), 
+                names_from = "year.type", values_from = "recruitment") %>%
+    # Calculate time to reach half of Rmax
+    mutate(t.half = ifelse(is.na(Rb), NA_real_, year.a + (0.5*Rmax - Ra)/(Rb - Ra))) %>%
+    # Finish formatting
+    dplyr::select(browsing, sp.composition, density0, Rmax, t.half) 
+  
+  
+  ## - Plot for max recruitment
+  plot.Rmax <- data %>%
+    filter(density0 == density0.in) %>%
+    ggplot(aes(x = browsing, y = Rmax, color = sp.composition, group = sp.composition)) + 
+    geom_point() +
+    geom_line() + 
+    scale_color_manual(values = c("#93B1A7", "#F9C74F", "#F8961E", "#90BE6D")) +
+    ylab("Maximum recruitment \n (saplings/m2)") + xlab("Biomass browsed (kg.ha.year)") + 
+    theme(panel.background = element_rect(colour = "black", fill = "white"), 
+          panel.grid = element_blank(), 
+          legend.position = "none")
+  
+  ## - Plot for recruitment speed
+  plot.t.half <- data %>%
+    filter(density0 == density0.in) %>%
+    ggplot(aes(x = browsing, y = t.half, color = sp.composition, group = sp.composition)) + 
+    geom_point() +
+    geom_line() + 
+    scale_color_manual(values = c("#93B1A7", "#F9C74F", "#F8961E", "#90BE6D")) +
+    ylab("Time to reach Rmax/2 \n (year)") + xlab("Biomass browsed (kg.ha.year)") + 
+    theme(panel.background = element_rect(colour = "black", fill = "white"), 
+          panel.grid = element_blank(), 
+          legend.position = "none")
+  
+  
+  ## - Final plot
+  plot.out <- plot_grid(plot.Rmax, plot.t.half, 
+                        get_legend(plot.Rmax + theme(legend.position = "left", 
+                                                     legend.title = element_blank(), 
+                                                     legend.key = element_blank())), 
+                        nrow = 1, align = "h", scale = 0.9, rel_widths = c(1, 1, 0.7), 
+                        labels = c("(a)", "(b)", ""))
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 21, height = 7, units = "cm", dpi = 600)
+  return(file.in)
+  
+  
+}
+
+
+
+#' Plot how the effect of browsing on max recruitment changes with sapling density
+#' @param simulation_output_formatted output of the simulations formatted
+#' @param file.in Name and location of the file to save
+plot_H2 <- function(simulation_output_formatted, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  ## - Format the data for plotting
+  data <- simulation_output_formatted %>%
+    # Format species composition variable
+    mutate(sp.composition = case_when(
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
+      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam", 
+      TRUE ~ "100% Oak")) %>%
+    # Rename sapling density
+    rename(density0 = saplingDensity.in) %>%
+    # format browsing
+    mutate(browsing = ifelse(saplingBrowsedBiomass_kg_ha_year > 0, "browsing", "control")) %>%
+    dplyr::select("sp.composition", "browsing", "density0", paste0("Y", c(1:20))) %>%
+    # gather each year
+    tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
+    # Adapt recruitment depending on species composition (and convert from ha to m2)
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/20000, recruitment/10000)) %>%
+    # Format year
+    mutate(year = as.numeric(gsub("Y", "", year))) %>%
+    # Calculate max recruitment
+    group_by(browsing, sp.composition, density0) %>%
+    mutate(Rmax = max(recruitment)) %>%
+    # Determine if recruitment is before or after rmax/2
+    mutate(positionRmax2 = ifelse(recruitment <= Rmax/2, "before", "after")) %>%
+    group_by(browsing, sp.composition, density0, positionRmax2) %>%
+    mutate(year.type = case_when(positionRmax2 == "before" & recruitment == max(recruitment) ~ "Ra", 
+                                 positionRmax2 == "after" & recruitment == min(recruitment) ~ "Rb", 
+                                 TRUE ~ "Rc")) %>%
+    filter(year.type %in% c("Ra", "Rb")) %>%
+    ungroup() %>%
+    group_by(browsing, sp.composition, density0) %>%
+    mutate(year.a = min(year)) %>%
+    ungroup() %>%
+    dplyr::select("sp.composition", "browsing", "density0", "Rmax", "year.a", "year.type", "recruitment") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c("sp.composition", "browsing", "density0", "Rmax", "year.a"), 
+                names_from = "year.type", values_from = "recruitment") %>%
+    # Calculate time to reach half of Rmax
+    mutate(t.half = ifelse(is.na(Rb), NA_real_, year.a + (0.5*Rmax - Ra)/(Rb - Ra))) %>%
+    # Finish formatting
+    dplyr::select(browsing, sp.composition, density0, Rmax, t.half) 
+  
+  # Plot the recruitment loss (or gain) due to heavy browsing
+  plot.rmax.change <- data %>%
+    # Calculate percentage of change due to browsing
+    dplyr::select(-t.half) %>%
+    spread(key = "browsing", value = "Rmax") %>%
+    mutate(browsing.change_percent = -(control - browsing)/control*100) %>%
+    # Plot
+    ggplot(aes(x = density0, y = browsing.change_percent, 
+               color = sp.composition, group = sp.composition)) + 
+    geom_point() +
+    geom_line()  + 
+    scale_color_manual(values = c("#93B1A7", "#F9C74F", "#F8961E", "#90BE6D")) +
+    ylab("Changes in Rmax due \n to browsing (%)") + xlab("Initial sapling density (m-2)") + 
+    scale_y_continuous(breaks = c(-100, -50, 0, 50, 100), 
+                       labels = paste0(c(-100, -50, 0, 50, 100), " %"), 
+                       limits = c(-100, 100)) + 
+    geom_hline(yintercept = 0, linetype = "dashed") +
+    theme(panel.background = element_rect(colour = "black", fill = "white"), 
+          panel.grid = element_blank(), 
+          legend.position = "none") 
+  
+  
+  # Plot changes in Rmax with or without browsing for each species composition
+  plot.rmax <- data %>%
+    ggplot(aes(x = density0, y = Rmax, color = sp.composition, linetype = browsing,
+               group = interaction(sp.composition, browsing))) + 
+    geom_line()  + 
+    geom_point() +
+    scale_color_manual(values = c("#93B1A7", "#F9C74F", "#F8961E", "#90BE6D")) +
+    scale_linetype_manual(values = c("dashed", "solid")) +
+    ylab("Maximum recruitment \n saplings/m2)") + xlab("Initial sapling density (m-2)") + 
+    theme(panel.background = element_rect(colour = "black", fill = "white"), 
+          panel.grid = element_blank(), 
+          legend.key = element_blank(), 
+          legend.title = element_blank()) 
+  
+  
+  ## - Final plot
+  plot.out <- plot_grid(plot.rmax.change, (plot.rmax + theme(legend.position = "none")), 
+                        get_legend(plot.rmax), nrow = 1, align = "h", scale = 0.9, 
+                        rel_widths = c(1.1, 1, 0.7), labels = c("(a)", "(b)", ""))
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 21, height = 7, units = "cm", dpi = 600)
+  return(file.in)
+  
+  
+}
+
+#' Plot the effect of browsing, species and density on max recruitment and recruitment speed
+#' @param simulation_output_formatted output of the simulations formatted
+#' @param file.in Name and location of the file to save
+plot_H3 <- function(simulation_output_formatted, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  ## - Format the data
+  data <- simulation_output_formatted %>%
+    # Format species composition variable
+    mutate(clearing.freq = as.numeric(gsub("freq", "", gsub("\\..+", "", clearing_scenario))), 
+           cleared.species = gsub("\\-", " and ", gsub(".+\\.", "", clearing_scenario)), 
+           cleared.species = gsub("FAGUS_SYLVATICA", "beech", cleared.species), 
+           cleared.species = gsub("CARPINUS_BETULUS", "hornbeam", cleared.species), 
+           cleared.species = ifelse(clearing.freq == 0, "no clearing", cleared.species)) %>%
+    # Rename browsing and recruitment
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year, density0 = saplingDensity.in) %>%
+    dplyr::select("cleared.species", "browsing", "density0", "sim.number", paste0("Y", c(1:20))) %>%
+    # gather each year
+    tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
+    # Adapt recruitment depending on species composition (and convert from ha to m2)
+    mutate(recruitment = recruitment/10000) %>%
+    # Format year
+    mutate(year = as.numeric(gsub("Y", "", year))) %>%
+    # Calculate max recruitment
+    group_by(browsing, cleared.species, density0, sim.number) %>%
+    mutate(Rmax = max(recruitment)) %>%
+    # Determine if recruitment is before or after rmax/2
+    mutate(positionRmax2 = ifelse(recruitment <= Rmax/2, "before", "after")) %>%
+    group_by(browsing, cleared.species, density0, sim.number, positionRmax2) %>%
+    mutate(year.type = case_when(positionRmax2 == "before" & recruitment == max(recruitment) ~ "Ra", 
+                                 positionRmax2 == "after" & recruitment == min(recruitment) ~ "Rb", 
+                                 TRUE ~ "Rc")) %>%
+    filter(year.type %in% c("Ra", "Rb")) %>%
+    ungroup() %>%
+    group_by(browsing, cleared.species, density0, sim.number) %>%
+    mutate(year.a = min(year)) %>%
+    ungroup() %>%
+    dplyr::select("cleared.species", "browsing", "density0", "sim.number", "Rmax", "year.a", "year.type", "recruitment") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c("cleared.species", "browsing", "density0", "sim.number", "Rmax", "year.a"), 
+                names_from = "year.type", values_from = "recruitment") %>%
+    # Calculate time to reach half of Rmax
+    mutate(t.half = ifelse(is.na(Rb), NA_real_, year.a + (0.5*Rmax - Ra)/(Rb - Ra))) %>%
+    # Finish formatting
+    dplyr::select(browsing, cleared.species, density0, sim.number, Rmax, t.half) 
+  
+  # Initialize final list of plots
+  plots.out <- list()
+  
+  # Loop on each density value to fit model
+  for(j in 1:length(unique(data$density0))){
+    # Density value j
+    density.j <- unique(data$density0)[j]
+    
+    ## - Plot for Rmax
+    
+    # Fit a simple model 
+    model.rmax.j <- aov(log(Rmax + 0.001) ~ factor(browsing)*cleared.species, data = subset(data, density0 == density.j))
+    
+    # Plot statistics for rmax model j
+    plot.stat.rmax.j <- data.frame(variable = c("Br", "Cl", "Br:Cl"), 
+                                   Fval = summary(model.rmax.j)[[1]][c(1:3), 4]) %>%
+      mutate(Fval.rel = Fval/sum(Fval)*100) %>%
+      ggplot(aes(x = variable, y = Fval.rel)) + 
+      geom_bar(color = "grey", fill = "black", stat = "identity") + 
+      xlab("") + ylab("Relative F value (%)") + 
+      theme(panel.background = element_rect(fill = "white", color = "black"), 
+            panel.grid = element_blank()) + 
+      ylim(0, 100) + 
+      coord_flip()
+    
+    # Plot rmax value for density j
+    plot.rmax.value.j <- data %>%
+      filter(density0 == density.j) %>%
+      group_by(browsing, cleared.species) %>%
+      summarize(Rmax.mean = mean(Rmax, na.rm = TRUE), 
+                Rmax.sd = sd(Rmax, na.rm = TRUE)) %>%
+      mutate(browsing.pos = case_when(cleared.species == "hornbeam" ~ browsing - 6, 
+                                      cleared.species == "hornbeam and beech" ~ browsing - 2, 
+                                      cleared.species == "beech" ~ browsing + 2, 
+                                      cleared.species == "no clearing" ~ browsing + 6),
+             cleared.species = factor(cleared.species, levels = c("hornbeam", "hornbeam and beech", 
+                                                                  "beech", "no clearing"))) %>%
+      ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = cleared.species)) + 
+      geom_errorbar(aes(ymin = Rmax.mean - Rmax.sd, ymax = Rmax.mean + Rmax.sd), width = 0) + 
+      geom_point(size = 2, shape = 21, color = "black") +
+      scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+      xlab("Biomass browsed (kg.ha.year)") + ylab("Rmax \n(saplings/m2)") + 
+      scale_x_continuous(breaks = unique(data$browsing)) +
+      ggtitle(paste0(density.j, " saplings/m2")) +
+      theme(panel.background = element_rect(fill = "white", color = "black"), 
+            panel.grid = element_blank(), 
+            legend.position = "none")
+    
+    # Final plot j
+    plot.rmax.j <- plot_grid(plot.rmax.value.j, plot.stat.rmax.j, rel_heights = c(1, 0.5), align = "v", ncol = 1)
+    
+    ## Plot for t.half
+    
+    # Only if there is enough data
+    if(!(0 %in% (subset(data, density0 == density.j) %>%
+                 group_by(browsing) %>%
+                 summarize(mean = mean(Rmax)))$mean)){
+      # Fit a simple model 
+      model.t.half.j <- aov(log(t.half + 0.001) ~ factor(browsing)*cleared.species, data = subset(data, density0 == density.j))
+      
+      # Plot statistics for t.half model j
+      plot.stat.t.half.j <- data.frame(variable = c("Br", "Cl", "Br:Cl"), 
+                                       Fval = summary(model.t.half.j)[[1]][c(1:3), 4]) %>%
+        mutate(Fval.rel = Fval/sum(Fval)*100) %>%
+        ggplot(aes(x = variable, y = Fval.rel)) + 
+        geom_bar(color = "grey", fill = "black", stat = "identity") + 
+        xlab("") + ylab("Relative F value (%)") + 
+        theme(panel.background = element_rect(fill = "white", color = "black"), 
+              panel.grid = element_blank()) + 
+        ylim(0, 100) + 
+        coord_flip()
+      
+      # Plot t.half value for density j
+      plot.t.half.value.j <- data %>%
+        filter(density0 == density.j) %>%
+        group_by(browsing, cleared.species) %>%
+        summarize(t.half.mean = mean(t.half, na.rm = TRUE), 
+                  t.half.sd = sd(t.half, na.rm = TRUE)) %>%
+        mutate(browsing.pos = case_when(cleared.species == "hornbeam" ~ browsing - 6, 
+                                        cleared.species == "hornbeam and beech" ~ browsing - 2, 
+                                        cleared.species == "beech" ~ browsing + 2, 
+                                        cleared.species == "no clearing" ~ browsing + 6),
+               cleared.species = factor(cleared.species, levels = c("hornbeam", "hornbeam and beech", 
+                                                                    "beech", "no clearing"))) %>%
+        ggplot(aes(x = browsing.pos, y = t.half.mean, fill = cleared.species)) + 
+        geom_errorbar(aes(ymin = t.half.mean - t.half.sd, ymax = t.half.mean + t.half.sd), width = 0) + 
+        geom_point(size = 2, shape = 21, color = "black") +
+        scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+        xlab("Biomass browsed (kg.ha.year)") + ylab("Thalf \n (year)") + 
+        scale_x_continuous(breaks = unique(data$browsing)) +
+        ggtitle(paste0(density.j, " saplings/m2")) +
+        theme(panel.background = element_rect(fill = "white", color = "black"), 
+              panel.grid = element_blank(), 
+              legend.position = "none")
+      
+      # Final plot j
+      plot.t.half.j <- plot_grid(plot.t.half.value.j, plot.stat.t.half.j, rel_heights = c(1, 0.5), align = "v", ncol = 1)
+    } else {plot.t.half.j <- ggplot() + theme_void()}
+    
+    plot.j <- plot_grid(plot.rmax.j, (ggplot + theme_void()), plot.t.half.j, nrow = 1, rel_widths = c(1, 0.2, 1), align = "")
+    
+    
+    # Add to the final plot list
+    eval(parse(text = paste0("plots.out$density", density.j, " <- plot.j")))
+    
+  }
+  
+  # Final plot
+  plot.out <- 
+    plot_grid(plot_grid(plotlist = plots.out, ncol = 1, labels = paste0("(", letters[c(1:length(unique(data$density0)))], ")"), scale = 0.9), 
+              get_legend(plot.rmax.value.j + theme(legend.position = "left", legend.key = element_blank(), legend.title = element_blank())), 
+              nrow = 1, rel_widths = c(1, 0.3))
+  
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 20, height = 20, units = "cm", dpi = 600)
+  return(file.in)
+  
+}
+
+#' Plot the effect of browsing, species and density on max recruitment and recruitment speed
+#' @param simulation_output_formatted output of the simulations formatted
+#' @param file.in Name and location of the file to save
+plot_H4 <- function(simulation_output_formatted, density0.in = 30, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  ## - Format the data
+  data <- simulation_output_formatted %>%
+    # Format species composition variable
+    mutate(sp.composition = case_when(
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
+      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam", 
+      TRUE ~ "100% Oak")) %>%
+    # Rename browsing and recruitment
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year, density0 = saplingDensity.in) %>%
+    dplyr::select("sp.composition", "browsing", "density0", "sim.number", paste0("Y", c(1:20))) %>%
+    # gather each year
+    tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
+    # Adapt recruitment depending on species composition (and convert from ha to m2)
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/20000, recruitment/10000)) %>%
+    # Format year
+    mutate(year = as.numeric(gsub("Y", "", year))) %>%
+    # Calculate max recruitment
+    group_by(browsing, sp.composition, density0, sim.number) %>%
+    mutate(Rmax = max(recruitment)) %>%
+    # Determine if recruitment is before or after rmax/2
+    mutate(positionRmax2 = ifelse(recruitment <= Rmax/2, "before", "after")) %>%
+    group_by(browsing, sp.composition, density0, sim.number, positionRmax2) %>%
+    mutate(year.type = case_when(positionRmax2 == "before" & recruitment == max(recruitment) ~ "Ra", 
+                                 positionRmax2 == "after" & recruitment == min(recruitment) ~ "Rb", 
+                                 TRUE ~ "Rc")) %>%
+    filter(year.type %in% c("Ra", "Rb")) %>%
+    ungroup() %>%
+    group_by(browsing, sp.composition, density0, sim.number) %>%
+    mutate(year.a = min(year)) %>%
+    ungroup() %>%
+    dplyr::select("sp.composition", "browsing", "density0", "sim.number", "Rmax", "year.a", "year.type", "recruitment") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c("sp.composition", "browsing", "density0", "sim.number", "Rmax", "year.a"), 
+                names_from = "year.type", values_from = "recruitment") %>%
+    # Calculate time to reach half of Rmax
+    mutate(t.half = ifelse(is.na(Rb), NA_real_, year.a + (0.5*Rmax - Ra)/(Rb - Ra))) %>%
+    # Finish formatting
+    dplyr::select(browsing, sp.composition, density0, sim.number, Rmax, t.half) 
+  
+  # Initialiaze final list of plots
+  plots.out <- list()
+  
+  # Loop on each density value to fit model
+  for(j in 1:length(unique(data$density0))){
+    # Density value j
+    density.j <- unique(data$density0)[j]
+    
+    ## - Plot for Rmax
+    
+    # Fit a simple model 
+    model.rmax.j <- aov(log(Rmax + 0.001) ~ factor(browsing)*sp.composition, data = subset(data, density0 == density.j))
+    
+    # Plot statistics for rmax model j
+    plot.stat.rmax.j <- data.frame(variable = c("Br", "Sp", "Br:Sp"), 
+                                   Fval = summary(model.rmax.j)[[1]][c(1:3), 4]) %>%
+      mutate(Fval.rel = Fval/sum(Fval)*100) %>%
+      ggplot(aes(x = variable, y = Fval.rel)) + 
+      geom_bar(color = "grey", fill = "black", stat = "identity") + 
+      xlab("") + ylab("Relative F value (%)") + 
+      theme(panel.background = element_rect(fill = "white", color = "black"), 
+            panel.grid = element_blank()) + 
+      ylim(0, 100) + 
+      coord_flip()
+    
+    # Plot rmax value for density j
+    plot.rmax.value.j <- data %>%
+      filter(density0 == density.j) %>%
+      group_by(browsing, sp.composition) %>%
+      summarize(Rmax.mean = mean(Rmax, na.rm = TRUE), 
+                Rmax.sd = sd(Rmax, na.rm = TRUE)) %>%
+      mutate(browsing.pos = case_when(sp.composition == "50% hornbeam" ~ browsing - 6, 
+                                      sp.composition == "25% beech - 25% hornbeam" ~ browsing - 2, 
+                                      sp.composition == "50% beech" ~ browsing + 2, 
+                                      sp.composition == "100% Oak" ~ browsing + 6),
+             sp.composition = factor(sp.composition, levels = c("50% hornbeam", "25% beech - 25% hornbeam", 
+                                                                "50% beech", "100% Oak"))) %>%
+      ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = sp.composition)) + 
+      geom_errorbar(aes(ymin = Rmax.mean - Rmax.sd, ymax = Rmax.mean + Rmax.sd), width = 0) + 
+      geom_point(size = 2, shape = 21, color = "black") +
+      scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+      xlab("Biomass browsed (kg.ha.year)") + ylab("Rmax \n(saplings/m2)") + 
+      scale_x_continuous(breaks = unique(data$browsing)) +
+      ggtitle(paste0(density.j, " saplings/m2")) +
+      theme(panel.background = element_rect(fill = "white", color = "black"), 
+            panel.grid = element_blank(), 
+            legend.position = "none")
+    
+    # Final plot j
+    plot.rmax.j <- plot_grid(plot.rmax.value.j, plot.stat.rmax.j, rel_heights = c(1, 0.5), align = "v", ncol = 1)
+    
+    ## Plot for t.half
+    
+    # Only if there is enough data
+    if(!(0 %in% (subset(data, density0 == density.j) %>%
+                 group_by(browsing) %>%
+                 summarize(mean = mean(Rmax)))$mean)){
+      # Fit a simple model 
+      model.t.half.j <- aov(log(t.half + 0.001) ~ factor(browsing)*sp.composition, data = subset(data, density0 == density.j))
+      
+      # Plot statistics for t.half model j
+      plot.stat.t.half.j <- data.frame(variable = c("Br", "Sp", "Br:Sp"), 
+                                       Fval = summary(model.t.half.j)[[1]][c(1:3), 4]) %>%
+        mutate(Fval.rel = Fval/sum(Fval)*100) %>%
+        ggplot(aes(x = variable, y = Fval.rel)) + 
+        geom_bar(color = "grey", fill = "black", stat = "identity") + 
+        xlab("") + ylab("Relative F value (%)") + 
+        theme(panel.background = element_rect(fill = "white", color = "black"), 
+              panel.grid = element_blank()) + 
+        ylim(0, 100) + 
+        coord_flip()
+      
+      # Plot t.half value for density j
+      plot.t.half.value.j <- data %>%
+        filter(density0 == density.j) %>%
+        group_by(browsing, sp.composition) %>%
+        summarize(t.half.mean = mean(t.half, na.rm = TRUE), 
+                  t.half.sd = sd(t.half, na.rm = TRUE)) %>%
+        mutate(browsing.pos = case_when(sp.composition == "50% hornbeam" ~ browsing - 6, 
+                                        sp.composition == "25% beech - 25% hornbeam" ~ browsing - 2, 
+                                        sp.composition == "50% beech" ~ browsing + 2, 
+                                        sp.composition == "100% Oak" ~ browsing + 6),
+               sp.composition = factor(sp.composition, levels = c("50% hornbeam", "25% beech - 25% hornbeam", 
+                                                                  "50% beech", "100% Oak"))) %>%
+        ggplot(aes(x = browsing.pos, y = t.half.mean, fill = sp.composition)) + 
+        geom_errorbar(aes(ymin = t.half.mean - t.half.sd, ymax = t.half.mean + t.half.sd), width = 0) + 
+        geom_point(size = 2, shape = 21, color = "black") +
+        scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+        xlab("Biomass browsed (kg.ha.year)") + ylab("Thalf \n (year)") + 
+        scale_x_continuous(breaks = unique(data$browsing)) +
+        ggtitle(paste0(density.j, " saplings/m2")) +
+        theme(panel.background = element_rect(fill = "white", color = "black"), 
+              panel.grid = element_blank(), 
+              legend.position = "none")
+      
+      # Final plot j
+      plot.t.half.j <- plot_grid(plot.t.half.value.j, plot.stat.t.half.j, rel_heights = c(1, 0.5), align = "v", ncol = 1)
+    } else {plot.t.half.j <- ggplot() + theme_void()}
+    
+    plot.j <- plot_grid(plot.rmax.j, (ggplot + theme_void()), plot.t.half.j, nrow = 1, rel_widths = c(1, 0.2, 1), align = "")
+    
+    
+    # Add to the final plot list
+    eval(parse(text = paste0("plots.out$density", density.j, " <- plot.j")))
+    
+  }
+  
+  # Final plot
+  plot.out <- 
+    plot_grid(plot_grid(plotlist = plots.out, ncol = 1, labels = paste0("(", letters[c(1:length(unique(data$density0)))], ")"), scale = 0.9), 
+              get_legend(plot.rmax.value.j + theme(legend.position = "left", legend.key = element_blank(), legend.title = element_blank())), 
+              nrow = 1, rel_widths = c(1, 0.3))
+  
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 20, height = 20, units = "cm", dpi = 600)
+  return(file.in)
+  
+}
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# --- 3. Outdated functions ----
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+#' Plot the effect of browsing on recruitment for a fixed year and density
+#' @param jags.model rjags object
+#' @param file.in Name and location of the file to save
+plot_convergence <- function(jags.model, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  # Extract rhat of each model parameter
+  rhat.data <- get_rhat(jags.model)
+  
+  # Make the plot
+  plot.out <- ggs(as.mcmc(jags.model)) %>%
+    left_join(rhat.data, by = "Parameter") %>%
+    mutate(Chain = as.character(Chain), 
+           Parameter = paste0(Parameter, ", rhat = ", round(rhat, digits = 1))) %>%
+    ggplot(aes(x = Iteration, y = value, color = Chain, group = Chain)) +
+    geom_line() + 
+    facet_wrap(~ Parameter, scales = "free") + 
+    theme_bw()
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 30, height = 20, units = "cm", dpi = 600)
+  return(file.in)
+  
+}
+
+#' Plot the effect of browsing on recruitment for a fixed year and density
+#' @param simulation_output_formatted output of the simulations formatted
+#' @param year.in Numeric indicating after how many years should we count recruits (10, 15 or 20)
+#' @param density.in Numeric indicating the initial density of seedlings per m2
+#' @param file.in Name and location of the file to save
+plot_recruitment_vs_sp_and_browsing <- function(simulation_output_formatted, density.in = 30, year.in = 20, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  # Make the plot
+  plot.out <- simulation_output_formatted %>%
+    # Format species composition variable
+    mutate(sp.composition = case_when(
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
+      sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
+      sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam", 
+      TRUE ~ "100% Oak")) %>%
+    # Only keep density of interest
+    filter(saplingDensity.in == density.in)  %>%
+    # Rename browsing and recruitment
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year) %>%
+    rename("recruitment" = paste0("density.oak130.y", year.in, "_ha")) %>%
+    # Adapt recruitment depending on species composition 
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/2, recruitment)) %>%
+    # Calculate recruitment in percentage based on initial sapling density
+    mutate(recruitment_percent = (recruitment/10000)/(0.5*saplingDensity.in)*100) %>%
+    dplyr::select(sp.composition, browsing, recruitment, recruitment_percent) %>%
+    # Convert recruitment in m-2 instead of ha
+    mutate(recruitment = recruitment/10000) %>%
+    # Plot the output
+    ggplot(aes(x = browsing, y = recruitment, color = sp.composition, group = sp.composition)) + 
+    geom_line() + 
+    theme_bw()
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 15, height = 10, units = "cm", dpi = 600)
+  return(file.in)
+  
+  
+}
+
 
