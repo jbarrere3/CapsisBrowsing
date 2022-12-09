@@ -59,7 +59,7 @@ list(
     capsis_dir.H3, herbivory_table.H3, inventory_table.H3, cmd_file.H3, simulations_output.H3)), 
   
   # Plot the outputs
-  tar_target(fig_H3, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_3.pdf"), format = "file"), 
+  tar_target(fig_H3, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_H3.pdf"), format = "file"), 
   tar_target(fig_H3_jpg, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_H3.jpg"), format = "file"),
   
   
