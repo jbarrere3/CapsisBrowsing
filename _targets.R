@@ -21,6 +21,10 @@ list(
   tar_target(fig_palatability_growth, plot_palatability_growth("fig/fig_palatability_growth.pdf"), 
              format = "file"),
   
+  # Plot the metrics used for the analysis
+  tar_target(fig_metrics, plot_metrics(simulation_output_formatted_H4, selected.lines = 25, "fig/fig_metrics.pdf"), 
+             format = "file"),
+  
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # H3: Management of browsing in different seedling density
   
@@ -57,6 +61,9 @@ list(
   # Format the outputs
   tar_target(simulation_output_formatted_H3, format_simulation_outputs3(
     capsis_dir.H3, herbivory_table.H3, inventory_table.H3, cmd_file.H3, simulations_output.H3)), 
+  
+  # Fit models
+  tar_target(models_H3, fit.models_H3(simulation_output_formatted_H3)), 
   
   # Plot the outputs
   tar_target(fig_H3, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_H3.pdf"), format = "file"), 
@@ -102,6 +109,9 @@ list(
   # Format the outputs
   tar_target(simulation_output_formatted_H4, format_simulation_outputs3(
     capsis_dir_H4, herbivory_table_H4, inventory_table_H4, cmd_file_H4, simulations_output_H4)), 
+  
+  # Fit models
+  tar_target(models_H4, fit.models_H4(simulation_output_formatted_H4)), 
   
   # Plot the outputs
   tar_target(fig_H4, plot_H4(simulation_output_formatted_H4, file.in = "fig/fig_H4.pdf"), format = "file"), 

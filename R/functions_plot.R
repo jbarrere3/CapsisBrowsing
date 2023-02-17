@@ -138,6 +138,61 @@ plot_palatability_growth <- function(file.in){
 }
 
 
+#' Plot the metrics extracted using the data
+#' @param simulation_output_formatted dataframe containing output of simulations
+#' @param selected.lines simulation number to extract for the plot (one needed)
+#' @param file.in Name of the file to save (including path)
+plot_metrics <- function(simulation_output_formatted, selected.lines = 47, file.in){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.in)
+  
+  # Format the data
+  data <- simulation_output_formatted %>%
+    filter(sim.number == selected.lines) %>%
+    dplyr::select("density" = "saplingDensity.in", paste0("Y", c(1:20))) %>%
+    gather(key = "time", value = "value", paste0("Y", c(1:20))) %>%
+    mutate(R = value/(27^2), 
+           time = as.numeric(gsub("Y", "", time)))
+  
+  # Calculate max recruitment
+  Rmax <- max(data$R)
+  
+  # Calculate thalf
+  t.before <- max((data %>% filter(R < Rmax/2))$time)
+  R.before <- max((data %>% filter(R < Rmax/2))$R)
+  R.after <- min((data %>% filter(R > Rmax/2))$R)
+  t.half <- t.before + abs((Rmax/2 - R.before)/(R.after - R.before))
+  
+  # Plot metrics
+  plot.out <- data %>%
+    ggplot(aes(x = time, y = R, group = 1)) + 
+    geom_line() + 
+    # Rmax horizontal
+    geom_segment(x = 0, xend = 20, y = Rmax, yend = Rmax, 
+                 linetype = "dashed", color = "#E63946") +
+    geom_text(data = data.frame(time = 1.2, R = Rmax*1.05), 
+              color = "#E63946", label = "Rmax") + 
+    # Rmax/2 horizontal
+    geom_segment(x = 0, xend = t.half, y = Rmax/2, yend = Rmax/2, 
+                 linetype = "dashed", color = "#457B9D") +
+    geom_text(data = data.frame(time = 1.6, R = Rmax*1.1/2), 
+              color = "#457B9D", label = "Rmax/2") + 
+    # Thalf vertical
+    geom_segment(x = t.half, xend = t.half, y = 0, yend = Rmax/2, 
+                 linetype = "dashed", color = "#457B9D") +
+    geom_text(data = data.frame(time = t.half*1.15, R = Rmax*0.05), 
+              color = "#457B9D", label = "Thalf") + 
+    # Axis label
+    xlab("Time \n (year)") + ylab("Oak recruitment \n(saplings/m2)") +
+    theme(panel.background = element_rect(fill = "white", color = "black"), 
+          panel.grid = element_blank())
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.in, plot.out, width = 12, height = 10, units = "cm", dpi = 600)
+  return(file.in)
+  
+}
 
 
 #' Plot the effect of browsing, species and density on max recruitment and recruitment speed
@@ -162,7 +217,7 @@ plot_H3 <- function(simulation_output_formatted, file.in){
     # gather each year
     tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
     # Adapt recruitment depending on species composition (and convert from ha to m2)
-    mutate(recruitment = recruitment/10000) %>%
+    mutate(recruitment = recruitment/(27^2)) %>%
     # Format year
     mutate(year = as.numeric(gsub("Y", "", year))) %>%
     # Calculate max recruitment
@@ -218,17 +273,21 @@ plot_H3 <- function(simulation_output_formatted, file.in){
       filter(density0 == density.j) %>%
       group_by(browsing, cleared.species) %>%
       summarize(Rmax.mean = mean(Rmax, na.rm = TRUE), 
-                Rmax.sd = sd(Rmax, na.rm = TRUE)) %>%
+                Rmax.sd = sd(Rmax, na.rm = TRUE), 
+                Rmax.low = quantile(Rmax, 0.025, na.rm = TRUE), 
+                Rmax.high = quantile(Rmax, 0.975, na.rm = TRUE)) %>%
       mutate(browsing.pos = case_when(cleared.species == "hornbeam" ~ browsing - 6, 
                                       cleared.species == "hornbeam and beech" ~ browsing - 2, 
                                       cleared.species == "beech" ~ browsing + 2, 
                                       cleared.species == "no clearing" ~ browsing + 6),
              cleared.species = factor(cleared.species, levels = c("hornbeam", "hornbeam and beech", 
                                                                   "beech", "no clearing"))) %>%
-      ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = cleared.species)) + 
-      geom_errorbar(aes(ymin = Rmax.mean - Rmax.sd, ymax = Rmax.mean + Rmax.sd), width = 0) + 
+      ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = cleared.species, group = cleared.species)) + 
+      geom_errorbar(aes(ymin = Rmax.low, ymax = Rmax.high), width = 0) + 
+      geom_line(aes(color = cleared.species)) +
       geom_point(size = 2, shape = 21, color = "black") +
       scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+      scale_color_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
       xlab("Biomass browsed (kg.ha.year)") + ylab("Rmax \n(saplings/m2)") + 
       scale_x_continuous(breaks = unique(data$browsing)) +
       ggtitle(paste0(density.j, " saplings/m2")) +
@@ -265,17 +324,21 @@ plot_H3 <- function(simulation_output_formatted, file.in){
         filter(density0 == density.j) %>%
         group_by(browsing, cleared.species) %>%
         summarize(t.half.mean = mean(t.half, na.rm = TRUE), 
-                  t.half.sd = sd(t.half, na.rm = TRUE)) %>%
+                  t.half.sd = sd(t.half, na.rm = TRUE), 
+                  t.half.low = quantile(t.half, 0.025, na.rm = TRUE), 
+                  t.half.high = quantile(t.half, 0.975, na.rm = TRUE)) %>%
         mutate(browsing.pos = case_when(cleared.species == "hornbeam" ~ browsing - 6, 
                                         cleared.species == "hornbeam and beech" ~ browsing - 2, 
                                         cleared.species == "beech" ~ browsing + 2, 
                                         cleared.species == "no clearing" ~ browsing + 6),
                cleared.species = factor(cleared.species, levels = c("hornbeam", "hornbeam and beech", 
                                                                     "beech", "no clearing"))) %>%
-        ggplot(aes(x = browsing.pos, y = t.half.mean, fill = cleared.species)) + 
-        geom_errorbar(aes(ymin = t.half.mean - t.half.sd, ymax = t.half.mean + t.half.sd), width = 0) + 
+        ggplot(aes(x = browsing.pos, y = t.half.mean, fill = cleared.species, group = cleared.species)) + 
+        geom_errorbar(aes(ymin = t.half.low, ymax = t.half.high), width = 0) + 
+        geom_line(aes(color = cleared.species)) +
         geom_point(size = 2, shape = 21, color = "black") +
         scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+        scale_color_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
         xlab("Biomass browsed (kg.ha.year)") + ylab("Thalf \n (year)") + 
         scale_x_continuous(breaks = unique(data$browsing)) +
         ggtitle(paste0(density.j, " saplings/m2")) +
@@ -330,7 +393,7 @@ plot_H4 <- function(simulation_output_formatted, density0.in = 30, file.in){
     # gather each year
     tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
     # Adapt recruitment depending on species composition (and convert from ha to m2)
-    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/20000, recruitment/10000)) %>%
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/(2*(27^2)), recruitment/(27^2))) %>%
     # Format year
     mutate(year = as.numeric(gsub("Y", "", year))) %>%
     # Calculate max recruitment
@@ -386,17 +449,21 @@ plot_H4 <- function(simulation_output_formatted, density0.in = 30, file.in){
       filter(density0 == density.j) %>%
       group_by(browsing, sp.composition) %>%
       summarize(Rmax.mean = mean(Rmax, na.rm = TRUE), 
-                Rmax.sd = sd(Rmax, na.rm = TRUE)) %>%
+                Rmax.sd = sd(Rmax, na.rm = TRUE), 
+                Rmax.low = quantile(Rmax, 0.025, na.rm = TRUE), 
+                Rmax.high = quantile(Rmax, 0.975, na.rm = TRUE)) %>%
       mutate(browsing.pos = case_when(sp.composition == "50% hornbeam" ~ browsing - 6, 
                                       sp.composition == "25% beech - 25% hornbeam" ~ browsing - 2, 
                                       sp.composition == "50% beech" ~ browsing + 2, 
                                       sp.composition == "100% Oak" ~ browsing + 6),
              sp.composition = factor(sp.composition, levels = c("50% hornbeam", "25% beech - 25% hornbeam", 
                                                                 "50% beech", "100% Oak"))) %>%
-      ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = sp.composition)) + 
-      geom_errorbar(aes(ymin = Rmax.mean - Rmax.sd, ymax = Rmax.mean + Rmax.sd), width = 0) + 
+      ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = sp.composition, group = sp.composition)) + 
+      geom_errorbar(aes(ymin = Rmax.low, ymax = Rmax.high), width = 0) + 
+      geom_line(aes(color = sp.composition)) +
       geom_point(size = 2, shape = 21, color = "black") +
       scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+      scale_color_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
       xlab("Biomass browsed (kg.ha.year)") + ylab("Rmax \n(saplings/m2)") + 
       scale_x_continuous(breaks = unique(data$browsing)) +
       ggtitle(paste0(density.j, " saplings/m2")) +
@@ -433,17 +500,21 @@ plot_H4 <- function(simulation_output_formatted, density0.in = 30, file.in){
         filter(density0 == density.j) %>%
         group_by(browsing, sp.composition) %>%
         summarize(t.half.mean = mean(t.half, na.rm = TRUE), 
-                  t.half.sd = sd(t.half, na.rm = TRUE)) %>%
+                  t.half.sd = sd(t.half, na.rm = TRUE), 
+                  t.half.low = quantile(t.half, 0.025, na.rm = TRUE), 
+                  t.half.high = quantile(t.half, 0.975, na.rm = TRUE)) %>%
         mutate(browsing.pos = case_when(sp.composition == "50% hornbeam" ~ browsing - 6, 
                                         sp.composition == "25% beech - 25% hornbeam" ~ browsing - 2, 
                                         sp.composition == "50% beech" ~ browsing + 2, 
                                         sp.composition == "100% Oak" ~ browsing + 6),
                sp.composition = factor(sp.composition, levels = c("50% hornbeam", "25% beech - 25% hornbeam", 
                                                                   "50% beech", "100% Oak"))) %>%
-        ggplot(aes(x = browsing.pos, y = t.half.mean, fill = sp.composition)) + 
-        geom_errorbar(aes(ymin = t.half.mean - t.half.sd, ymax = t.half.mean + t.half.sd), width = 0) + 
+        ggplot(aes(x = browsing.pos, y = t.half.mean, fill = sp.composition, group = sp.composition)) + 
+        geom_errorbar(aes(ymin = t.half.low, ymax = t.half.high), width = 0) + 
+        geom_line(aes(color = sp.composition)) +
         geom_point(size = 2, shape = 21, color = "black") +
         scale_fill_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
+        scale_color_manual(values = c("#90BE6D", "#F9C74F", "#F8961E", "#93B1A7")) +
         xlab("Biomass browsed (kg.ha.year)") + ylab("Thalf \n (year)") + 
         scale_x_continuous(breaks = unique(data$browsing)) +
         ggtitle(paste0(density.j, " saplings/m2")) +
@@ -475,6 +546,8 @@ plot_H4 <- function(simulation_output_formatted, density0.in = 30, file.in){
   return(file.in)
   
 }
+
+
 
 
 
