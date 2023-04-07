@@ -67,7 +67,7 @@ list(
   
   # Plot the outputs
   tar_target(fig_H3, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_H3.pdf"), format = "file"), 
-  tar_target(fig_H3_jpg, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_H3.jpg"), format = "file"),
+  tar_target(fig_H3_jpg, plot_H3_simple(simulation_output_formatted_H3, file.in = "fig/fig_H3.jpg"), format = "file"),
   
   
   
@@ -115,7 +115,7 @@ list(
   
   # Plot the outputs
   tar_target(fig_H4, plot_H4(simulation_output_formatted_H4, file.in = "fig/fig_H4.pdf"), format = "file"), 
-  tar_target(fig_H4_jpg, plot_H4(simulation_output_formatted_H4, file.in = "fig/fig_H4.jpg"), format = "file")
+  tar_target(fig_H4_jpg, plot_H4_simple(simulation_output_formatted_H4, file.in = "fig/fig_H4.jpg"), format = "file")
   
 )
 
