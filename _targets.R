@@ -59,15 +59,16 @@ list(
   tar_target(simulations_output.H3, run_simulations(capsis_dir.H3, cmd_file.H3), format = "file"),
   
   # Format the outputs
-  tar_target(simulation_output_formatted_H3, format_simulation_outputs3(
+  tar_target(simulation_output_formatted_H3, format_simulation_outputs(
     capsis_dir.H3, herbivory_table.H3, inventory_table.H3, cmd_file.H3, simulations_output.H3)), 
   
   # Fit models
-  tar_target(models_H3, fit.models_H3(simulation_output_formatted_H3)), 
+  tar_target(data_model_H3, get_data_model_H3(simulation_output_formatted_H3)),
+  tar_target(models_H3, fit.models_H3(data_model_H3)), 
   
   # Plot the outputs
-  tar_target(fig_H3, plot_H3(simulation_output_formatted_H3, file.in = "fig/fig_H3.pdf"), format = "file"), 
-  tar_target(fig_H3_jpg, plot_H3_simple(simulation_output_formatted_H3, file.in = "fig/fig_H3.jpg"), format = "file"),
+  tar_target(fig_H3_jpg, plot_H3_simple(
+    data_model = data_model_H3, file.in = "fig/fig_H3.jpg"), format = "file"),
   
   
   
@@ -107,15 +108,16 @@ list(
   tar_target(simulations_output_H4, run_simulations(capsis_dir_H4, cmd_file_H4), format = "file"),
   
   # Format the outputs
-  tar_target(simulation_output_formatted_H4, format_simulation_outputs3(
+  tar_target(simulation_output_formatted_H4, format_simulation_outputs(
     capsis_dir_H4, herbivory_table_H4, inventory_table_H4, cmd_file_H4, simulations_output_H4)), 
   
   # Fit models
-  tar_target(models_H4, fit.models_H4(simulation_output_formatted_H4)), 
+  tar_target(data_model_H4, get_data_model_H4(simulation_output_formatted_H4)),
+  tar_target(models_H4, fit.models_H4(data_model_H4)), 
   
   # Plot the outputs
-  tar_target(fig_H4, plot_H4(simulation_output_formatted_H4, file.in = "fig/fig_H4.pdf"), format = "file"), 
-  tar_target(fig_H4_jpg, plot_H4_simple(simulation_output_formatted_H4, file.in = "fig/fig_H4.jpg"), format = "file")
+  tar_target(fig_H4_jpg, plot_H4_simple(
+    data_model_H4, file.in = "fig/fig_H4.jpg"), format = "file")
   
 )
 

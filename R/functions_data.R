@@ -977,127 +977,13 @@ run_simulations <- function(capsis_dir, cmd_file){
 
 
 
-
-
-
-#' Extract and format the simulations output
+#' Extract and format the simulations output with recuitemnt data for each surveyed year
 #' @param capsis_dir Directory where the files are stored
 #' @param herbivory_table Table containing the herbivory scenarios
 #' @param inventory_table Table containing the inventory scenarios
 #' @param cmd_file Path to the command file to the script used to launch the simulations
 #' @param simulations_output Path to the files containing the simulation outputs
 format_simulation_outputs <- function(capsis_dir, herbivory_table, inventory_table, 
-                                      cmd_file, simulations_output){
-  
-  # Extract the herbivore and inventory scenarios per simulation
-  simulation.table <- read.table(cmd_file, col.names = c("invFile", "years", "herbFile"))
-  simulation.table <- simulation.table[c(3:dim(simulation.table)[1]), ] %>%
-    mutate(sim.number = c(1:dim(.)[1])) %>%
-    left_join((herbivory_table %>% rename(herbFile = filename)), by = "herbFile") %>%
-    left_join((inventory_table %>% rename(invFile = filename)), by = "invFile") %>%
-    mutate(density.oak130.y10_ha = NA_real_, 
-           density.oak130.y15_ha = NA_real_, 
-           density.oak130.y20_ha = NA_real_, 
-           browsing.density_m2 = NA_real_)
-  
-  # Calculate output variables
-  for(i in unique(simulation.table$sim.number)){
-    if(floor(i/20) == i/20) print(paste0("Extracting results for simulation ", i, "/", dim(simulation.table)[1]))
-    
-    # Read the saplings output
-    saplingExport_i <- read.table(
-      simulations_output[grep(paste0("sim_", i, "_saplingExport"), simulations_output)], 
-      col.names = c("year", "cell", "id", "species", "age", "diameter_mm", "height_cm", "browsed", "cleared"))
-    # Calculate density of oak above 130cm in height
-    oak130_i <- saplingExport_i %>%
-      filter(species == "QUERCUS_ROBUR" & height_cm >= 130 & year %in% c(10, 15, 20)) %>%
-      group_by(year) %>%
-      summarize(n = n()) %>%
-      mutate(density_ha = n*10000/(27^2))
-    simulation.table$density.oak130.y10_ha[i] <- ifelse(
-      length(which(oak130_i$year == 10) > 0), oak130_i$density_ha[which(oak130_i$year == 10)], 0)
-    simulation.table$density.oak130.y15_ha[i] <- ifelse(
-      length(which(oak130_i$year == 15) > 0), oak130_i$density_ha[which(oak130_i$year == 15)], 0)
-    simulation.table$density.oak130.y20_ha[i] <- ifelse(
-      length(which(oak130_i$year == 20) > 0), oak130_i$density_ha[which(oak130_i$year == 20)], 0)
-    # Calculate density of sapling browsed
-    browsing_i <- saplingExport_i %>%
-      group_by(year) %>%
-      summarize(browsed.density = sum(browsed)/(27^2)) %>%
-      ungroup() %>%
-      filter(year > 0) %>%
-      summarize(browsed.density.mean = mean(browsed.density))
-    simulation.table$browsing.density_m2[i] <- browsing_i$browsed.density.mean
-    
-  }
-  
-  return(simulation.table)
-}
-
-
-#' Extract and format the simulations output with recuitemnt data for each surveyed year
-#' @param capsis_dir Directory where the files are stored
-#' @param herbivory_table Table containing the herbivory scenarios
-#' @param inventory_table Table containing the inventory scenarios
-#' @param cmd_file Path to the command file to the script used to launch the simulations
-#' @param simulations_output Path to the files containing the simulation outputs
-format_simulation_outputs2 <- function(capsis_dir, herbivory_table, inventory_table, 
-                                       cmd_file, simulations_output){
-  
-  # Extract the herbivore and inventory scenarios per simulation
-  simulation.table <- read.table(cmd_file, col.names = c("invFile", "years", "herbFile"))
-  simulation.table <- simulation.table[c(3:dim(simulation.table)[1]), ] %>%
-    mutate(sim.number = c(1:dim(.)[1])) %>%
-    left_join((herbivory_table %>% rename(herbFile = filename)), by = "herbFile") %>%
-    left_join((inventory_table %>% rename(invFile = filename)), by = "invFile") %>%
-    mutate(browsing.density_m2 = NA_real_)
-  # Add one column per sampling year
-  for(y in c(1:20)){simulation.table$Yi <- 0; colnames(simulation.table)[dim(simulation.table)[2]] <- paste0("Y", y)}
-  
-  # Calculate output variables
-  for(i in unique(simulation.table$sim.number)){
-    if(floor(i/20) == i/20) print(paste0("Extracting results for simulation ", i, "/", dim(simulation.table)[1]))
-    
-    # Read the saplings output
-    saplingExport_i <- read.table(
-      simulations_output[grep(paste0("sim_", i, "_saplingExport"), simulations_output)], 
-      col.names = c("year", "cell", "id", "species", "age", "diameter_mm", "height_cm", "browsed", "cleared"))
-    # Calculate initial number of oak in the simulation
-    n.oak.init <- dim(saplingExport_i %>% filter(year == 0 & species == "QUERCUS_ROBUR"))[1]
-    # Calculate percentage of oak above 130cm in height per year
-    oak130_i <- saplingExport_i %>%
-      filter(species == "QUERCUS_ROBUR" & year > 0) %>%
-      mutate(year = paste0("Y", year), 
-             recruited = ifelse(height_cm >= 130, 1, 0)) %>%
-      group_by(year) %>%
-      summarize(n = sum(recruited)) %>%
-      mutate(percent_recruit = (n/n.oak.init)*100) %>%
-      dplyr::select(-n) %>%
-      tidyr::spread(key = year, value = percent_recruit) 
-    simulation.table[i, colnames(oak130_i)] <- oak130_i
-    # Calculate density of sapling browsed
-    browsing_i <- saplingExport_i %>%
-      group_by(year) %>%
-      summarize(browsed.density = sum(browsed)/(27^2)) %>%
-      ungroup() %>%
-      filter(year > 0) %>%
-      summarize(browsed.density.mean = mean(browsed.density))
-    simulation.table$browsing.density_m2[i] <- browsing_i$browsed.density.mean
-    
-  }
-  
-  return(simulation.table)
-}
-
-
-
-#' Extract and format the simulations output with recuitemnt data for each surveyed year
-#' @param capsis_dir Directory where the files are stored
-#' @param herbivory_table Table containing the herbivory scenarios
-#' @param inventory_table Table containing the inventory scenarios
-#' @param cmd_file Path to the command file to the script used to launch the simulations
-#' @param simulations_output Path to the files containing the simulation outputs
-format_simulation_outputs3 <- function(capsis_dir, herbivory_table, inventory_table, 
                                        cmd_file, simulations_output){
   
   # Extract the herbivore and inventory scenarios per simulation
@@ -1144,55 +1030,95 @@ format_simulation_outputs3 <- function(capsis_dir, herbivory_table, inventory_ta
 }
 
 
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# --- Section 4 - Outdated functions    ----
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-#' Format data for the jags model for hypothesis 1
-#' @param simulation_output_formatted_H1.3 Outputs of H1 simulations, with one recruitment per year
-#' @param density.in Seedling density selected to run the model
-format_data.jags_H1 <- function(simulation_output_formatted_H1.3, density.in){
+#' Format data before fitting model for hypothesis 3
+#' @param simulation_output_formatted 
+get_data_model_H3 = function(simulation_output_formatted){
   
-  data.in <- simulation_output_formatted_H1.3 %>%
+  simulation_output_formatted %>%
+    # Format species composition variable
+    mutate(clearing.freq = as.numeric(gsub("freq", "", gsub("\\..+", "", clearing_scenario))), 
+           cleared.species = gsub("\\-", " and ", gsub(".+\\.", "", clearing_scenario)), 
+           cleared.species = gsub("FAGUS_SYLVATICA", "beech", cleared.species), 
+           cleared.species = gsub("CARPINUS_BETULUS", "hornbeam", cleared.species), 
+           cleared.species = ifelse(clearing.freq == 0, "no clearing", cleared.species)) %>%
+    # Rename browsing and recruitment
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year, density0 = saplingDensity.in) %>%
+    dplyr::select("cleared.species", "browsing", "density0", "sim.number", paste0("Y", c(1:20))) %>%
+    # gather each year
+    tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
+    # Adapt recruitment depending on species composition (and convert from ha to m2)
+    mutate(recruitment = recruitment/10000) %>%
+    # Format year
+    mutate(year = as.numeric(gsub("Y", "", year))) %>%
+    # Calculate max recruitment
+    group_by(browsing, cleared.species, density0, sim.number) %>%
+    mutate(Rmax = max(recruitment)) %>%
+    # Determine if recruitment is before or after rmax/2
+    mutate(positionRmax2 = ifelse(recruitment <= Rmax/2, "before", "after")) %>%
+    group_by(browsing, cleared.species, density0, sim.number, positionRmax2) %>%
+    mutate(year.type = case_when(positionRmax2 == "before" & recruitment == max(recruitment) ~ "Ra", 
+                                 positionRmax2 == "after" & recruitment == min(recruitment) ~ "Rb", 
+                                 TRUE ~ "Rc")) %>%
+    filter(year.type %in% c("Ra", "Rb")) %>%
+    ungroup() %>%
+    group_by(browsing, cleared.species, density0, sim.number) %>%
+    mutate(year.a = min(year)) %>%
+    ungroup() %>%
+    dplyr::select("cleared.species", "browsing", "density0", "sim.number", "Rmax", "year.a", "year.type", "recruitment") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c("cleared.species", "browsing", "density0", "sim.number", "Rmax", "year.a"), 
+                names_from = "year.type", values_from = "recruitment") %>%
+    # Calculate time to reach half of Rmax
+    mutate(t.half = ifelse(is.na(Rb), NA_real_, year.a + (0.5*Rmax - Ra)/(Rb - Ra))) %>%
+    # Finish formatting
+    dplyr::select(browsing, cleared.species, density0, sim.number, Rmax, t.half) 
+  
+  
+}
+
+
+#' Format data before fitting model for hypothesis 3
+#' @param simulation_output_formatted 
+get_data_model_H4 = function(simulation_output_formatted){
+  
+  simulation_output_formatted %>%
     # Format species composition variable
     mutate(sp.composition = case_when(
       sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.5" ~ "50% beech",
       sapling.in == "QUERCUS_ROBUR*0.5-CARPINUS_BETULUS*0.5" ~ "50% hornbeam",
       sapling.in == "QUERCUS_ROBUR*0.5-FAGUS_SYLVATICA*0.25-CARPINUS_BETULUS*0.25" ~ "25% beech - 25% hornbeam", 
       TRUE ~ "100% Oak")) %>%
-    # Only keep density of interest
-    filter(saplingDensity.in == density.in)  %>%
     # Rename browsing and recruitment
-    rename(browsing = saplingBrowsedBiomass_kg_ha_year) %>%
-    dplyr::select("sp.composition", "browsing", paste0("Y", c(1:20))) %>%
+    rename(browsing = saplingBrowsedBiomass_kg_ha_year, density0 = saplingDensity.in) %>%
+    dplyr::select("sp.composition", "browsing", "density0", "sim.number", paste0("Y", c(1:20))) %>%
     # gather each year
     tidyr::gather(key = "year", value = "recruitment", paste0("Y", c(1:20))) %>%
     # Adapt recruitment depending on species composition (and convert from ha to m2)
-    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/20000, recruitment/10000)) %>%
+    mutate(recruitment = ifelse(sp.composition == "100% Oak", recruitment/(2*(27^2)), recruitment/(27^2))) %>%
     # Format year
     mutate(year = as.numeric(gsub("Y", "", year))) %>%
-    # Convert species composition in a number
-    left_join((data.frame(sp.composition = unique(.$sp.composition), 
-                          sp = c(1:length(unique(.$sp.composition))))), 
-              by = "sp.composition")
+    # Calculate max recruitment
+    group_by(browsing, sp.composition, density0, sim.number) %>%
+    mutate(Rmax = max(recruitment)) %>%
+    # Determine if recruitment is before or after rmax/2
+    mutate(positionRmax2 = ifelse(recruitment <= Rmax/2, "before", "after")) %>%
+    group_by(browsing, sp.composition, density0, sim.number, positionRmax2) %>%
+    mutate(year.type = case_when(positionRmax2 == "before" & recruitment == max(recruitment) ~ "Ra", 
+                                 positionRmax2 == "after" & recruitment == min(recruitment) ~ "Rb", 
+                                 TRUE ~ "Rc")) %>%
+    filter(year.type %in% c("Ra", "Rb")) %>%
+    ungroup() %>%
+    group_by(browsing, sp.composition, density0, sim.number) %>%
+    mutate(year.a = min(year)) %>%
+    ungroup() %>%
+    dplyr::select("sp.composition", "browsing", "density0", "sim.number", "Rmax", "year.a", "year.type", "recruitment") %>%
+    distinct() %>%
+    pivot_wider(id_cols = c("sp.composition", "browsing", "density0", "sim.number", "Rmax", "year.a"), 
+                names_from = "year.type", values_from = "recruitment") %>%
+    # Calculate time to reach half of Rmax
+    mutate(t.half = ifelse(is.na(Rb), NA_real_, year.a + (0.5*Rmax - Ra)/(Rb - Ra))) %>%
+    # Finish formatting
+    dplyr::select(browsing, sp.composition, density0, sim.number, Rmax, t.half) 
   
-  # Convert into a list
-  out <- list(
-    sp = data.in$sp, 
-    t = data.in$year, 
-    br = data.in$browsing, 
-    R = data.in$recruitment, 
-    spcomp = data.in$sp.composition, 
-    N = dim(data.in)[1], 
-    Nsp = length(unique(data.in$sp))
-  )
   
-  # Return output list
-  return(out)
 }
-
