@@ -759,4 +759,83 @@ plot_H4_simple <- function(data_model, file.in){
 
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+## 3. Plots for the appendix ------
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+#' Plot browsing rates per browsing pressure
+#' @param capsis_dir directory of capsis simulations
+#' @param herbivory_table Table listing all herbivory scenarios
+#' @param inventory_table
+#' @param cmd_file
+#' @param simulations_output
+#' @param file.out
+plot_br_rate = function(capsis_dir, herbivory_table, inventory_table, cmd_file, 
+                        simulations_output, file.out){
+  
+  # Create output directory if needed
+  create_dir_if_needed(file.out)
+  
+  # Extract the herbivore and inventory scenarios per simulation
+  simulation.table <- read.table(cmd_file, col.names = c("invFile", "years", "herbFile"))
+  simulation.table <- simulation.table[c(3:dim(simulation.table)[1]), ] %>%
+    mutate(sim.number = c(1:dim(.)[1])) %>%
+    left_join((herbivory_table %>% rename(herbFile = filename)), by = "herbFile") %>%
+    left_join((inventory_table %>% rename(invFile = filename)), by = "invFile")
+  
+  # Calculate output variables
+  for(i in 1:dim(simulation.table)[1]){
+    if(floor(i/20) == i/20) print(paste0("Extracting results for simulation ", i, "/", dim(simulation.table)[1]))
+    
+    # Read the saplings output
+    data.i <- read.table(
+      simulations_output[grep(paste0("sim_", i, "_saplingExport"), simulations_output)], 
+      col.names = c("year", "cell", "id", "species", "age", "diameter_mm", "height_cm", "browsed", "cleared")) %>%
+      # Calculate quadratic diameter and n of seedling browsed per year
+      mutate(diam2 = diameter_mm^2, 
+             count = ifelse(!is.na(diam2), 1, 0)) %>%
+      group_by(year) %>%
+      summarize(dqm = sqrt(mean(diam2, na.rm = T)), 
+                br_ha = sum(browsed, na.rm = T)*10000/(27^2), 
+                sapling_ha = sum(count)*10000/(27^2))  %>%
+      # Add information on the simulation
+      mutate(sim.number = simulation.table$sim.number[i], 
+             Br_kg_ha_year = simulation.table$saplingBrowsedBiomass_kg_ha_year[i], 
+             D0 = simulation.table$saplingDensity.in[i])
+    
+    # Add to final dataframe
+    if(i == 1) data = data.i
+    else data = rbind(data, data.i)
+    
+  }
+  
+  
+  # Restrict to 100% oak
+  plot.out = data %>%
+    filter(Br_kg_ha_year > 0 & year > 0) %>%
+    mutate(br_m2 = br_ha/10000, 
+           browsing = paste0(Br_kg_ha_year, " kg/ha/year"), 
+           density.init = paste0(D0, " saplings/m2"), 
+           br_prop = br_ha/sapling_ha) %>%
+    left_join((simulation.table %>% dplyr::select(sim.number, sapling.in)), 
+              by = "sim.number") %>%
+    filter(sapling.in == "QUERCUS_ROBUR*1") %>%
+    ggplot(aes(x = dqm, y = br_prop, color = browsing)) +
+    geom_point() +
+    facet_wrap(~ density.init) + 
+    xlab("Sapling quadratic diameter in the plot (mm)") + 
+    ylab("Proportion of saplings\n browsed (%)")
+  
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.out, plot.out, width = 20, height = 8, units = "cm", dpi = 600)
+  return(file.out)
+  
+  
+}
+
+
+
 

@@ -26,7 +26,7 @@ list(
              format = "file"),
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  # H3: Management of browsing in different seedling density
+  # H3: Management of browsing in different seedling density ----
   
   # Directory where all files should be placed
   tar_target(capsis_dir.H3, "C:/capsis4/data/rreshar/herbivory-jb/H3"),
@@ -74,7 +74,7 @@ list(
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  # H4 : H1 and H2 merged and simpler (no linear relations)
+  # H4 : H1 and H2 merged and simpler (no linear relations) ----
   
   # Directory where all files should be placed
   tar_target(capsis_dir_H4, "C:/capsis4/data/rreshar/herbivory-jb/H4"),
@@ -117,7 +117,18 @@ list(
   
   # Plot the outputs
   tar_target(fig_H4_jpg, plot_H4_simple(
-    data_model_H4, file.in = "fig/fig_H4.jpg"), format = "file")
+    data_model_H4, file.in = "fig/fig_H4.jpg"), format = "file"),
+  
+  
+  
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  # For supplementary material ----
+  
+  # Plot browsing rate against browsing pressure
+  tar_target(fig_br_rate, plot_br_rate(
+    capsis_dir_H4, herbivory_table_H4, inventory_table_H4, cmd_file_H4, 
+    simulations_output_H4, "fig/supp/fig_br_rate.jpg"), format = "file")
   
 )
 
