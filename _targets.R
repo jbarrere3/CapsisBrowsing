@@ -128,7 +128,13 @@ list(
   # Plot browsing rate against browsing pressure
   tar_target(fig_br_rate, plot_br_rate(
     capsis_dir_H4, herbivory_table_H4, inventory_table_H4, cmd_file_H4, 
-    simulations_output_H4, "fig/supp/fig_br_rate.jpg"), format = "file")
+    simulations_output_H4, "fig/supp/fig_br_rate.jpg"), format = "file"), 
+  
+  # Plot residuals of each model with qqplots
+  tar_target(fig_resid_H4, plot_resid(models_H4, "fig/supp/fig_resid_H4.jpg"), 
+             format = "file"), 
+  tar_target(fig_resid_H3, plot_resid(models_H3, "fig/supp/fig_resid_H3.jpg"), 
+             format = "file")
   
 )
 

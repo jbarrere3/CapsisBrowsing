@@ -205,7 +205,7 @@ plot_metrics <- function(simulation_output_formatted, selected.lines = 47, file.
 #' Plot the effect of browsing, species and density on max recruitment and recruitment speed
 #' @param data_model output of the simulations formatted to fit model
 #' @param file.in Name and location of the file to save
-plot_H3_simple <- function(data_model, file.in){
+plot_H3_simple <- function(data_model, file.in, c = 0.001){
   
   # Create directory if needed
   create_dir_if_needed(file.in)
@@ -225,7 +225,7 @@ plot_H3_simple <- function(data_model, file.in){
                                                                 "beech", "no clearing")), 
            density = paste0(density0, " saplings/m2")) %>%
     # Add significance symbol
-    left_join(get_signif(data_model, "rmax"), by = c("density0", "browsing")) %>%
+    left_join(get_signif(data_model, "rmax", c), by = c("density0", "browsing")) %>%
     ungroup() %>% group_by(density0, browsing) %>%
     mutate(text.pos.y = max(Rmax.high)) %>%
     ggplot(aes(x = browsing.pos, y = Rmax.mean, fill = cleared.species, group = cleared.species)) + 
@@ -267,7 +267,7 @@ plot_H3_simple <- function(data_model, file.in){
            density = factor(density, levels = paste0(c(10, 30, 50), " saplings/m2"))) %>%
     filter(n >= 10) %>%
     # Add significance symbol
-    left_join(get_signif(data_model, "thalf"), by = c("density0", "browsing")) %>%
+    left_join(get_signif(data_model, "thalf", c=0), by = c("density0", "browsing")) %>%
     ungroup() %>% group_by(density0, browsing) %>%
     mutate(text.pos.y = max(t.half.high)) %>%
     ggplot(aes(x = browsing.pos, y = t.half.mean, fill = cleared.species, group = cleared.species)) + 
@@ -368,7 +368,7 @@ plot_H4_simple <- function(data_model, file.in){
            density = factor(density, levels = paste0(c(10, 30, 50), " saplings/m2"))) %>%
     filter(n >= 10) %>%
     # Add significance symbol
-    left_join(get_signif(data_model, "thalf"), by = c("density0", "browsing")) %>%
+    left_join(get_signif(data_model, "thalf", c=0), by = c("density0", "browsing")) %>%
     ungroup() %>% group_by(density0, browsing) %>%
     mutate(text.pos.y = max(t.half.high)) %>%
     ggplot(aes(x = browsing.pos, y = t.half.mean, fill = sp.composition, group = sp.composition)) + 
@@ -482,6 +482,39 @@ plot_br_rate = function(capsis_dir, herbivory_table, inventory_table, cmd_file,
   
   
 }
+
+
+
+#' Function to make qqplot of the residuals from list of models
+#' @param models list of models
+#' @param file.out Name fo the file to save, including path
+plot_resid = function(models, file.out){
+  
+  # Create directory if needed
+  create_dir_if_needed(file.out)
+  
+  # Initialize list of plots
+  plotlist = vector(mode = "list", length = length(models))
+  
+  # Loop on all models
+  for(i in 1:length(names(models))){
+    plotlist[[i]] = data.frame(y=models[[i]]$residuals) %>%
+      ggplot(aes(sample=y)) +
+      stat_qq() + 
+      stat_qq_line() + 
+      ggtitle(gsub("\\.", "\\ ", names(models)[i])) + 
+      theme_bw()
+  } 
+  
+  # Make final plot
+  plot.out = plot_grid(plotlist = plotlist, align = "hv", scale = 0.9, nrow = 2)
+  
+  ## - save the plot and return the name of the file
+  ggsave(file.out, plot.out, width = 25, height = 13, units = "cm", dpi = 600)
+  return(file.out)
+  
+}
+
 
 
 

@@ -19,7 +19,7 @@
 #' Fit models testing the effect of browsing, species and density on max 
 #' recruitment and recruitment speed
 #' @param data_model output of the simulations formatted to fit model
-fit.models_H3 <- function(data_model){
+fit.models_H3 <- function(data_model, c = 0.001){
   
   # Initialize final list of models
   list.out <- list()
@@ -30,7 +30,7 @@ fit.models_H3 <- function(data_model){
     density.j <- unique(data_model$density0)[j]
     
     # Fit a simple model 
-    model.rmax.j <- aov(log(Rmax + 0.001) ~ factor(browsing)*cleared.species, 
+    model.rmax.j <- aov(log(Rmax + c) ~ factor(browsing)*cleared.species, 
                         data = subset(data_model, density0 == density.j))
     
     # Add to the final list
@@ -41,7 +41,7 @@ fit.models_H3 <- function(data_model){
                  group_by(browsing) %>%
                  summarize(mean = mean(Rmax)))$mean)){
       # Fit a simple model 
-      model.t.half.j <- aov(log(t.half + 0.001) ~ factor(browsing)*cleared.species, 
+      model.t.half.j <- aov(log(t.half) ~ factor(browsing)*cleared.species, 
                             data = subset(data_model, density0 == density.j))
       
       # Add to the final list
@@ -60,7 +60,7 @@ fit.models_H3 <- function(data_model){
 #' Fit models to test the effect of browsing, species and clearing on max recruitment and recruitment speed
 #' @param data_model output of the simulations formatted to fit model
 #' @param file.in Name and location of the file to save
-fit.models_H4 <- function(data_model){
+fit.models_H4 <- function(data_model, c = 0.001){
   
  
   # Initialiaze final list of plots
@@ -75,7 +75,7 @@ fit.models_H4 <- function(data_model){
     ## - For Rmax
     
     # Fit a simple model 
-    model.rmax.j <- aov(log(Rmax + 0.001) ~ factor(browsing)*sp.composition, 
+    model.rmax.j <- aov(log(Rmax + c) ~ factor(browsing)*sp.composition, 
                         data = subset(data_model, density0 == density.j))
     # Add to the final list
     eval(parse(text = paste0("list.out$rmax.density", density.j, " <- model.rmax.j")))
@@ -87,7 +87,7 @@ fit.models_H4 <- function(data_model){
                  group_by(browsing) %>%
                  summarize(mean = mean(Rmax)))$mean)){
       # Fit a simple model 
-      model.t.half.j <- aov(log(t.half + 0.001) ~ factor(browsing)*sp.composition, 
+      model.t.half.j <- aov(log(t.half) ~ factor(browsing)*sp.composition, 
                             data = subset(data_model, density0 == density.j))
       # Add to the final list
       eval(parse(text = paste0("list.out$thalf.density", density.j, " <- model.t.half.j")))
@@ -107,7 +107,7 @@ fit.models_H4 <- function(data_model){
 #' a given response variable at each level of density and browsing
 #' @param models statistical models of a given hypothesis
 #' @param var character of the response variable: "rmax" or "thalf"
-get_signif = function(data_model, var){
+get_signif = function(data_model, var, c = 0.001){
   
   # Format data model
   data.in = data_model
@@ -117,7 +117,7 @@ get_signif = function(data_model, var){
   data.in = data.in %>%
     ungroup() %>%
     dplyr::select(browsing, exp, density0, var) %>%
-    mutate(var = log(var + 0.001))
+    mutate(var = log(var + c))
   
   # Identify the value of initial sapling density for which we have data
   out = expand.grid(density0 = unique(data.in$density0), 
